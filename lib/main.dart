@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_usecase.dart';
 
 import 'modules/todos/domain/usecases/get_todos.dart';
 import 'modules/todos/external/datasources/todo_api_datasource.dart';
@@ -17,10 +19,16 @@ void main() {
   final repository = TodoRepositoryImpl(datasource);
   final controller = TodosController(
     getTodos: GetTodos(repository),
+    updateTodoUsecase: UpdateTodoUsecase(repository: repository),
   )..load();
 
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: TodosPage(controller: controller),
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider<TodosController>.value(value: controller)
+    ],
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: TodosPage(controller: controller),
+    ),
   ));
 }
