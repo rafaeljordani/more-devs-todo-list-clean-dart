@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:todo_gabarito/modules/todos/domain/usecases/update_todos_use_case.dart';
+import 'package:provider/provider.dart';
+import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_usecase.dart';
 
 import 'modules/habits/presenter/habits_page.dart';
 import 'modules/todos/domain/usecases/get_todos.dart';
@@ -18,21 +19,17 @@ void main() {
   );
   final repository = TodoRepositoryImpl(datasource);
   final controller = TodosController(
-    updateUseCase: UpdateTodoUseCase(repository),
-    getTodos: GetTodosUseCase(repository),
+    getTodos: GetTodos(repository),
+    updateTodoUsecase: UpdateTodoUsecase(repository: repository),
   )..load();
 
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF315CFF)),
-    ),
-    home: HomeShell(
-      pages: [
-        TodosPage(controller: controller),
-        // TODO(aluno): passar o HabitsController para a página.
-        const HabitsPage(),
-      ],
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider<TodosController>.value(value: controller)
+    ],
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: TodosPage(controller: controller),
     ),
   ));
 }

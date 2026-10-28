@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:todo_gabarito/modules/todos/domain/entities/todo.dart';
 
 import '../../infra/datasources/todo_datasource.dart';
 
@@ -13,8 +14,14 @@ class TodoApiDatasource implements TodoDatasource {
     return res.data!.cast<Map<String, dynamic>>();
   }
 
-  Future<List<Map<String, dynamic>>> update() async {
-    final res = await dio.get<List<dynamic>>('/todos');
-    return res.data!.cast<Map<String, dynamic>>();
+  @override
+  Future<Map<String, dynamic>> updateTodo(Todo todo) async {
+    final res = await dio.patch<Map<String, dynamic>>(
+      '/todos/${todo.id}',
+      data: {
+        'completed': todo.done,
+      },
+    );
+    return res.data!;
   }
 }
