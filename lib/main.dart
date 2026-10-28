@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_usecase.dart';
 
+import 'modules/habits/presenter/habits_page.dart';
 import 'modules/todos/domain/usecases/get_todos.dart';
 import 'modules/todos/external/datasources/todo_api_datasource.dart';
 import 'modules/todos/infra/datasources/todo_datasource.dart';
@@ -31,4 +32,39 @@ void main() {
       home: TodosPage(controller: controller),
     ),
   ));
+}
+
+/// Navegação entre os módulos. Fica aqui para um módulo não importar o outro.
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key, required this.pages});
+
+  final List<Widget> pages;
+
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  int index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(index: index, children: widget.pages),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: index,
+        onDestinationSelected: (value) => setState(() => index = value),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.checklist_rounded),
+            label: 'Tarefas',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.local_fire_department_rounded),
+            label: 'Hábitos',
+          ),
+        ],
+      ),
+    );
+  }
 }
