@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:todo_gabarito/modules/habits/infra/datasources/habitsDatasource.dart';
 import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_usecase.dart';
 
 import 'modules/habits/presenter/habits_page.dart';
@@ -19,7 +20,9 @@ void main() {
   );
   final repository = TodoRepositoryImpl(datasource);
   final controller = TodosController(
-    getTodos: GetTodos(repository),
+    getTodos: GetTodosUseCase(repository),
+
+    /// plmds rafael lembra que voce fez issoi aqwuoi
     updateTodoUsecase: UpdateTodoUsecase(repository: repository),
   )..load();
 
