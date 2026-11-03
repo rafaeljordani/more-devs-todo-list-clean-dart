@@ -3,7 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_usecase.dart';
 
-import 'modules/habits/presenter/habits_page.dart';
+import 'modules/auth/model/auth_service.dart';
+import 'modules/auth/view/login_page.dart';
+import 'modules/auth/viewmodel/login_view_model.dart';
+import 'modules/habits/model/habits_service.dart';
+import 'modules/habits/view/habits_page.dart';
+import 'modules/habits/viewmodel/habits_view_model.dart';
+import 'modules/notes/controller/notes_controller.dart';
+import 'modules/notes/model/notes_service.dart';
+import 'modules/notes/view/notes_page.dart';
 import 'modules/todos/domain/usecases/get_todos.dart';
 import 'modules/todos/external/datasources/todo_api_datasource.dart';
 import 'modules/todos/infra/datasources/todo_datasource.dart';
@@ -13,10 +21,12 @@ import 'modules/todos/presenter/todos_page.dart';
 
 /// Único lugar que sabe quais implementações usar.
 void main() {
-  final TodoDatasource datasource = TodoApiDatasource(
-    Dio(BaseOptions(
-        baseUrl: 'https://todo-api-production-62d2.up.railway.app')),
+  final dio = Dio(
+    BaseOptions(baseUrl: 'https://todo-api-production-62d2.up.railway.app'),
   );
+
+  // Clean Dart: datasource → repositório → casos de uso → controller.
+  final TodoDatasource datasource = TodoApiDatasource(dio);
   final repository = TodoRepositoryImpl(datasource);
   final controller = TodosController(
     getTodos: GetTodos(repository),
@@ -62,6 +72,10 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(
             icon: Icon(Icons.local_fire_department_rounded),
             label: 'Hábitos',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.sticky_note_2_rounded),
+            label: 'Notas',
           ),
         ],
       ),

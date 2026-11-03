@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
@@ -13,10 +14,36 @@ const openapiDocument = {
     info: {
         title: 'Todo Gabarito API',
         version: '1.0.0',
-        description: 'API para listar e atualizar tarefas e hábitos.',
+        description: 'API para login e para listar e atualizar tarefas, hábitos e notas.',
     },
     servers: [{ url: '/' }],
     paths: {
+        '/auth/login': {
+            post: {
+                summary: 'Entra com e-mail e senha',
+                description: 'Conta de teste: aluno@todo.dev / 123456',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/LoginInput' },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'Login feito',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/Session' },
+                            },
+                        },
+                    },
+                    400: { description: 'Dados inválidos' },
+                    401: { description: 'E-mail ou senha incorretos' },
+                },
+            },
+        },
         '/': {
             get: {
                 summary: 'Verifica o status da API',
@@ -127,9 +154,120 @@ const openapiDocument = {
                 },
             },
         },
+        '/notes': {
+            get: {
+                summary: 'Lista as notas (mais recentes primeiro)',
+                responses: {
+                    200: {
+                        description: 'Lista de notas',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/Note' },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            post: {
+                summary: 'Cria uma nota',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/NoteInput' },
+                        },
+                    },
+                },
+                responses: {
+                    201: {
+                        description: 'Nota criada',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/Note' },
+                            },
+                        },
+                    },
+                    400: { description: 'Dados inválidos' },
+                    409: { description: 'Limite de notas atingido' },
+                },
+            },
+        },
+        '/notes/{id}': {
+            put: {
+                summary: 'Atualiza o título e o texto de uma nota',
+                parameters: [{
+                    name: 'id',
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'integer', example: 1 },
+                }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/NoteInput' },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'Nota atualizada',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/Note' },
+                            },
+                        },
+                    },
+                    400: { description: 'Dados inválidos' },
+                    404: { description: 'Nota não encontrada' },
+                },
+            },
+            delete: {
+                summary: 'Exclui uma nota',
+                parameters: [{
+                    name: 'id',
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'integer', example: 1 },
+                }],
+                responses: {
+                    204: { description: 'Nota excluída' },
+                    400: { description: 'Dados inválidos' },
+                    404: { description: 'Nota não encontrada' },
+                },
+            },
+        },
     },
     components: {
         schemas: {
+            LoginInput: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                    email: { type: 'string', format: 'email', example: 'aluno@todo.dev' },
+                    password: { type: 'string', example: '123456' },
+                },
+            },
+            User: {
+                type: 'object',
+                required: ['id', 'name', 'email'],
+                properties: {
+                    id: { type: 'integer', example: 1 },
+                    name: { type: 'string', example: 'Aluno' },
+                    email: { type: 'string', format: 'email', example: 'aluno@todo.dev' },
+                },
+            },
+            Session: {
+                type: 'object',
+                required: ['token', 'user'],
+                properties: {
+                    token: { type: 'string', example: '3f1c2a9e-7b4d-4e8a-9c1f-2d6b8a0e5f3c' },
+                    user: { $ref: '#/components/schemas/User' },
+                },
+            },
             Todo: {
                 type: 'object',
                 required: ['id', 'title', 'completed'],
@@ -150,6 +288,28 @@ const openapiDocument = {
                         description: 'Datas (AAAA-MM-DD) em ordem crescente',
                         items: { type: 'string', format: 'date', example: '2026-10-27' },
                     },
+                },
+            },
+            Note: {
+                type: 'object',
+                required: ['id', 'title', 'content', 'updatedAt'],
+                properties: {
+                    id: { type: 'integer', example: 1 },
+                    title: { type: 'string', example: 'O que é MVC' },
+                    content: { type: 'string', example: 'Model, View e Controller.' },
+                    updatedAt: {
+                        type: 'string',
+                        format: 'date-time',
+                        example: '2026-10-29T13:45:00.000Z',
+                    },
+                },
+            },
+            NoteInput: {
+                type: 'object',
+                required: ['title'],
+                properties: {
+                    title: { type: 'string', maxLength: 100, example: 'O que é MVC' },
+                    content: { type: 'string', maxLength: 2000, example: 'Model, View e Controller.' },
                 },
             },
             Status: {
@@ -242,6 +402,33 @@ app.get('/', (_request, response) => {
     response.json({ name: 'todo-gabarito-api', status: 'ok' });
 });
 
+// Usuários de exemplo. Uma API de verdade guardaria só o hash da senha.
+const users = [
+    { id: 1, name: 'Aluno', email: 'aluno@todo.dev', password: '123456' },
+    { id: 2, name: 'Professor', email: 'professor@todo.dev', password: 'senha123' },
+];
+
+app.post('/auth/login', (request, response) => {
+    const { email, password } = request.body ?? {};
+
+    if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password) {
+        return response.status(400).json({ error: 'Informe o e-mail e a senha.' });
+    }
+
+    const user = users.find(
+        (item) => item.email === email.trim().toLowerCase() && item.password === password,
+    );
+    // Mesma resposta para e-mail inexistente e senha errada: não revela quem tem conta.
+    if (!user) {
+        return response.status(401).json({ error: 'E-mail ou senha incorretos.' });
+    }
+
+    return response.json({
+        token: crypto.randomUUID(),
+        user: { id: user.id, name: user.name, email: user.email },
+    });
+});
+
 app.get('/todos', (_request, response) => {
     response.json(todos);
 });
@@ -292,6 +479,120 @@ app.post('/habits/:id/checkins', (request, response) => {
 
     habit.checkins.push(date);
     return response.status(201).json(habit);
+});
+
+const hoursAgo = (hours) => new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+
+let notes = [
+    {
+        id: 1,
+        title: 'Camadas do Clean Dart',
+        content: 'Domain, Infra, External e Presenter. O Domain não conhece ninguém.',
+        updatedAt: hoursAgo(1),
+    },
+    {
+        id: 2,
+        title: 'O que é MVC',
+        content: 'O Model guarda os dados e as regras, a View mostra a tela e o Controller liga os dois.',
+        updatedAt: hoursAgo(5),
+    },
+    {
+        id: 3,
+        title: 'Comandos do Flutter',
+        content: 'flutter pub get\nflutter test\nflutter run',
+        updatedAt: hoursAgo(26),
+    },
+    {
+        id: 4,
+        title: 'Verbos HTTP',
+        content: 'GET lê, POST cria, PUT substitui, PATCH altera uma parte e DELETE remove.',
+        updatedAt: hoursAgo(50),
+    },
+    {
+        id: 5,
+        title: 'Ideias para o app',
+        content: 'Modo escuro, busca nas notas e um lembrete diário dos hábitos.',
+        updatedAt: hoursAgo(24 * 4),
+    },
+    {
+        id: 6,
+        title: 'Lista do mercado',
+        content: 'Café, pão, ovos, banana e leite.',
+        updatedAt: hoursAgo(24 * 9),
+    },
+];
+let nextNoteId = notes.length + 1;
+const maxNotes = 300;
+
+// Valida o corpo do POST e do PUT. Devolve { error } ou { title, content }.
+const readNoteInput = (body) => {
+    const { title, content = '' } = body ?? {};
+
+    if (typeof title !== 'string' || !title.trim()) {
+        return { error: 'O campo title é obrigatório.' };
+    }
+    if (typeof content !== 'string') {
+        return { error: 'O campo content deve ser texto.' };
+    }
+    if (title.trim().length > 100 || content.length > 2000) {
+        return { error: 'Use até 100 caracteres no title e 2000 no content.' };
+    }
+    return { title: title.trim(), content };
+};
+
+// Acha a nota do :id ou já responde 400/404. Devolve undefined nesse caso.
+const findNote = (request, response) => {
+    const id = Number(request.params.id);
+
+    if (!Number.isInteger(id)) {
+        response.status(400).json({ error: 'O id deve ser um número inteiro.' });
+        return undefined;
+    }
+
+    const note = notes.find((item) => item.id === id);
+    if (!note) {
+        response.status(404).json({ error: 'Nota não encontrada.' });
+    }
+    return note;
+};
+
+app.get('/notes', (_request, response) => {
+    response.json([...notes].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+});
+
+app.post('/notes', (request, response) => {
+    const input = readNoteInput(request.body);
+    if (input.error) {
+        return response.status(400).json({ error: input.error });
+    }
+    if (notes.length >= maxNotes) {
+        return response.status(409).json({ error: 'Limite de notas atingido.' });
+    }
+
+    const note = { id: nextNoteId++, ...input, updatedAt: new Date().toISOString() };
+    notes.push(note);
+    return response.status(201).json(note);
+});
+
+app.put('/notes/:id', (request, response) => {
+    const note = findNote(request, response);
+    if (!note) return undefined;
+
+    const input = readNoteInput(request.body);
+    if (input.error) {
+        return response.status(400).json({ error: input.error });
+    }
+
+    Object.assign(note, input, { updatedAt: new Date().toISOString() });
+    return response.json(note);
+});
+
+app.delete('/notes/:id', (request, response) => {
+    const note = findNote(request, response);
+    if (!note) return undefined;
+
+    notes = notes.filter((item) => item !== note);
+    return response.status(204).end();
 });
 
 app.use((_request, response) => {
