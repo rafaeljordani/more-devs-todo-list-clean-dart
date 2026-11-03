@@ -14,7 +14,17 @@ class HabitRepositoryImpl implements HabitRepository {
       final maps = await datasource.fetchHabits();
       return maps.map(HabitModel.fromMap).toList();
     } catch (_) {
-      throw const HabitFailure('Não foi possível carregar as tarefas');
+      throw const HabitFailure('Não foi possível carregar as habitos');
+    }
+  }
+
+  @override
+  Future<Habit> checkHabit(Habit habit) async {
+    try {
+      final map = await datasource.checkHabit(habit);
+      return HabitModel.fromMap(map);
+    } catch (_) {
+      throw const HabitFailure('Não foi possível comcluir o habito');
     }
   }
 }

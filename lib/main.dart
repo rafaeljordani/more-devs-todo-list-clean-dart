@@ -1,7 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:todo_gabarito/modules/habits/domain/usecases/check_in_habit.dart';
+import 'package:todo_gabarito/modules/habits/domain/usecases/get_habits.dart';
+import 'package:todo_gabarito/modules/habits/external/datasources/habit_api_datasoucers.dart';
 import 'package:todo_gabarito/modules/habits/infra/datasources/habitsDatasource.dart';
+import 'package:todo_gabarito/modules/habits/infra/repositories/habit_repository_impl.dart';
+import 'package:todo_gabarito/modules/habits/presenter/habits_controller.dart';
 import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_usecase.dart';
 
 import 'modules/habits/presenter/habits_page.dart';
@@ -14,10 +19,9 @@ import 'modules/todos/presenter/todos_page.dart';
 
 /// Único lugar que sabe quais implementações usar.
 void main() {
-  final TodoDatasource datasource = TodoApiDatasource(
-    Dio(BaseOptions(
-        baseUrl: 'https://todo-api-production-62d2.up.railway.app')),
-  );
+  Dio dio = Dio(
+      BaseOptions(baseUrl: 'https://todo-api-production-62d2.up.railway.app'));
+  final TodoDatasource datasource = TodoApiDatasource(dio);
   final repository = TodoRepositoryImpl(datasource);
   final controller = TodosController(
     getTodos: GetTodosUseCase(repository),
@@ -26,13 +30,20 @@ void main() {
     updateTodoUsecase: UpdateTodoUsecase(repository: repository),
   )..load();
 
+  final HabitsDatasource habitsDatasource = HabitApiDatasoucers(dio);
+  final habitsRepository = HabitRepositoryImpl(habitsDatasource);
+  final habitsController = HabitsController(
+      getHabitsUseCase: GetHabitsUseCase(habitsRepository),
+      checkHabitUseCase: CheckHabitUseCase(habitsRepository));
+
   runApp(MultiProvider(
     providers: [
-      ChangeNotifierProvider<TodosController>.value(value: controller)
+      ChangeNotifierProvider<TodosController>.value(value: controller),
+      ChangeNotifierProvider<HabitsController>.value(value: habitsController)
     ],
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: TodosPage(controller: controller),
+      home: HomeShell(pages: [TodosPage(controller: controller), HabitsPage()]),
     ),
   ));
 }
