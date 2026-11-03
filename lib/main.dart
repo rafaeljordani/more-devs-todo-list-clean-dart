@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:todo_gabarito/modules/todos/domain/usecases/update_todo_usecase.dart';
+import 'package:todo_gabarito/modules/todos/domain/usecases/update_todos_use_case.dart';
 
 import 'modules/auth/model/auth_service.dart';
 import 'modules/auth/view/login_page.dart';
@@ -28,18 +27,37 @@ void main() {
   // Clean Dart: datasource → repositório → casos de uso → controller.
   final TodoDatasource datasource = TodoApiDatasource(dio);
   final repository = TodoRepositoryImpl(datasource);
-  final controller = TodosController(
-    getTodos: GetTodos(repository),
-    updateTodoUsecase: UpdateTodoUsecase(repository: repository),
+  final todosController = TodosController(
+    updateUseCase: UpdateTodoUseCase(repository),
+    getTodos: GetTodosUseCase(repository),
   )..load();
 
-  runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider<TodosController>.value(value: controller)
+  // MVC: o controller fala direto com o Model.
+  final notesController = NotesController(NotesService(dio))..load();
+
+  // MVVM: a View observa o ViewModel, que fala com o Model.
+  final habitsViewModel = HabitsViewModel(HabitsService(dio))..load();
+  final loginViewModel = LoginViewModel(AuthService(dio));
+
+  final home = HomeShell(
+    pages: [
+      TodosPage(controller: todosController),
+      HabitsPage(viewModel: habitsViewModel),
+      NotesPage(controller: notesController),
     ],
-    child: MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: TodosPage(controller: controller),
+  );
+
+  runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: ThemeData(
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF315CFF)),
+    ),
+    // Enquanto não houver sessão, mostra o login; depois, o app.
+    home: ListenableBuilder(
+      listenable: loginViewModel,
+      builder: (context, _) => loginViewModel.loggedIn
+          ? home
+          : LoginPage(viewModel: loginViewModel),
     ),
   ));
 }

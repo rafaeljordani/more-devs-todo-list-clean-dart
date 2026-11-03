@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:todo_gabarito/modules/shared/errors/app_errors_box.dart';
-import 'package:todo_gabarito/modules/todos/presenter/todos_controller.dart';
 
 import '../domain/entities/todo.dart';
 
@@ -17,6 +14,7 @@ class TodoUpdatePage extends StatefulWidget {
 class _TodoUpdatePageState extends State<TodoUpdatePage> {
   late final TextEditingController titleController;
   late bool done;
+
   @override
   void initState() {
     super.initState();
@@ -127,50 +125,16 @@ class _TodoUpdatePageState extends State<TodoUpdatePage> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
               child: Column(
                 children: [
-                  Consumer<TodosController>(
-                      builder: (context, controller, child) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (controller.error != null) ...[
-                          AppErrorsBox(
-                            error: controller.error!,
-                          ),
-                        ],
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: controller.loading
-                                ? null
-                                : () async {
-                                    final saved = await controller.updateTodo(
-                                      widget.todo,
-                                      title: titleController.text,
-                                      done: done,
-                                    );
-                                    if (saved && context.mounted) {
-                                      Navigator.of(context).pop();
-                                    }
-                                  },
-                            icon: controller.loading
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.check_rounded),
-                            label: Text(
-                              controller.loading
-                                  ? 'Salvando...'
-                                  : 'Salvar alterações',
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        // TODO: implementar o update nas camadas e retornar o resultado.
+                      },
+                      icon: const Icon(Icons.check_rounded),
+                      label: const Text('Salvar alterações'),
+                    ),
+                  ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Cancelar'),
