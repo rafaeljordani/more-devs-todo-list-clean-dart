@@ -9,7 +9,6 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    viewModel.autoLogin();
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {

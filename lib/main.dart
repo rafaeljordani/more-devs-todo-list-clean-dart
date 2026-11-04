@@ -20,6 +20,8 @@ import 'modules/todos/presenter/todos_page.dart';
 
 /// Único lugar que sabe quais implementações usar.
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   final dio = Dio(
     BaseOptions(baseUrl: 'https://todo-api-production-62d2.up.railway.app'),
   );
@@ -38,8 +40,10 @@ void main() {
   // MVVM: a View observa o ViewModel, que fala com o Model.
   final habitsViewModel = HabitsViewModel(HabitsService(dio))..load();
   final loginViewModel = LoginViewModel(AuthService(dio));
+  loginViewModel.autoLogin();
 
   final home = HomeShell(
+    onLogout: loginViewModel.logout,
     pages: [
       TodosPage(controller: todosController),
       HabitsPage(viewModel: habitsViewModel),
@@ -52,21 +56,28 @@ void main() {
     theme: ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF315CFF)),
     ),
-    // Enquanto não houver sessão, mostra o login; depois, o app.
     home: ListenableBuilder(
       listenable: loginViewModel,
-      builder: (context, _) => loginViewModel.loggedIn
-          ? home
-          : LoginPage(viewModel: loginViewModel),
+      builder: (context, _) {
+        if (loginViewModel.restoringSession) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return loginViewModel.loggedIn
+            ? home
+            : LoginPage(viewModel: loginViewModel);
+      },
     ),
   ));
 }
 
 /// Navegação entre os módulos. Fica aqui para um módulo não importar o outro.
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.pages});
+  const HomeShell({super.key, required this.pages, required this.onLogout});
 
   final List<Widget> pages;
+  final Future<void> Function() onLogout;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -78,6 +89,15 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            tooltip: 'Sair',
+            onPressed: widget.onLogout,
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
       body: IndexedStack(index: index, children: widget.pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,

@@ -7,7 +7,8 @@ import '../model/session.dart';
 final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
 class LoginViewModel extends ChangeNotifier {
-  LoginViewModel(this.service);
+  LoginViewModel(this.service, {StoregeService? storegeService})
+      : storegeService = storegeService ?? StoregeService();
 
   final AuthService service;
 
@@ -17,8 +18,8 @@ class LoginViewModel extends ChangeNotifier {
   bool loading = false;
   bool obscurePassword = true;
 
-  /// Só visual por enquanto: ainda não guarda a sessão entre aberturas.
   bool rememberMe = false;
+  bool restoringSession = true;
   String? emailError;
   String? error;
   Session? session;
@@ -28,7 +29,7 @@ class LoginViewModel extends ChangeNotifier {
   bool get canSubmit =>
       !loading && _email.trim().isNotEmpty && _password.isNotEmpty;
 
-  final StoregeService storegeService = StoregeService();
+  final StoregeService storegeService;
 
   void setEmail(String value) {
     _email = value;
@@ -67,36 +68,58 @@ class LoginViewModel extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      session = await service.login(email, _password);
+      final authenticatedSession = await service.login(email, _password);
+      session = authenticatedSession;
+      if (rememberMe) {
+        await storegeService.saveSession(authenticatedSession);
+      } else {
+        await storegeService
+            .deleteToken(authenticatedSession.user.id.toString());
+      }
     } on InvalidCredentialsException {
       error = 'E-mail ou senha incorretos';
     } catch (_) {
       error = 'Não foi possível entrar. Tente de novo.';
     }
-    if (rememberMe) {
-      storegeService.addToken(session!.token, session!.user.id.toString());
-      print("salvou algo assim");
-    }
-
     loading = false;
     notifyListeners();
   }
 
   Future<String?> getToken() async {
-    return storegeService.getToken(session!.user.id.toString());
+    final savedSession = await storegeService.getSavedSession();
+    return savedSession?.token;
   }
 
   Future deleteToken() async {
-    storegeService.deleteToken(session!.user.id.toString());
+    final savedSession = await storegeService.getSavedSession();
+    if (savedSession != null) {
+      await storegeService.deleteToken(savedSession.user.id.toString());
+    }
   }
 
-  Future autoLogin() async {
-    String? token = await getToken();
-    if (token == null) {
-      print(session!.token);
-    } else {
-      // aqui precisa colocar a troca de tela
-      print(session!.token);
+  Future<void> logout() async {
+    if (session != null) {
+      await storegeService.deleteToken(session!.user.id.toString());
+    }
+    session = null;
+    rememberMe = false;
+    notifyListeners();
+  }
+
+  Future<void> autoLogin() async {
+    try {
+      session = await storegeService.getSavedSession();
+      if (session == null) {
+        rememberMe = false;
+      } else {
+        rememberMe = true;
+      }
+    } catch (_) {
+      session = null;
+      rememberMe = false;
+    } finally {
+      restoringSession = false;
+      notifyListeners();
     }
   }
 }
