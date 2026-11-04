@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:todo_gabarito/modules/auth/model/storege_service.dart';
 
 import '../model/auth_service.dart';
 import '../model/session.dart';
@@ -26,6 +27,8 @@ class LoginViewModel extends ChangeNotifier {
 
   bool get canSubmit =>
       !loading && _email.trim().isNotEmpty && _password.isNotEmpty;
+
+  final StoregeService storegeService = StoregeService();
 
   void setEmail(String value) {
     _email = value;
@@ -70,7 +73,30 @@ class LoginViewModel extends ChangeNotifier {
     } catch (_) {
       error = 'Não foi possível entrar. Tente de novo.';
     }
+    if (rememberMe) {
+      storegeService.addToken(session!.token, session!.user.id.toString());
+      print("salvou algo assim");
+    }
+
     loading = false;
     notifyListeners();
+  }
+
+  Future<String?> getToken() async {
+    return storegeService.getToken(session!.user.id.toString());
+  }
+
+  Future deleteToken() async {
+    storegeService.deleteToken(session!.user.id.toString());
+  }
+
+  Future autoLogin() async {
+    String? token = await getToken();
+    if (token == null) {
+      print(session!.token);
+    } else {
+      // aqui precisa colocar a troca de tela
+      print(session!.token);
+    }
   }
 }
