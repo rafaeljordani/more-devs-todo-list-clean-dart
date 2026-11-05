@@ -43,7 +43,14 @@ class _TodosPageState extends State<TodosPage> {
               const SizedBox.shrink(),
             ],
           ),
-          body: SafeArea(child: _buildBody(context)),
+          body: SafeArea(
+            child: Column(
+              children: [
+                _ConnectionStatus(controller: widget.controller),
+                Expanded(child: _buildBody(context)),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -159,6 +166,49 @@ class _TodosPageState extends State<TodosPage> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _ConnectionStatus extends StatelessWidget {
+  const _ConnectionStatus({required this.controller});
+
+  final TodosController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final isConnected = controller.hasConnection;
+    final color =
+        isConnected ? const Color(0xFF16834A) : const Color(0xFFB54708);
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.09),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isConnected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+            size: 17,
+            color: color,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            isConnected ? 'Conectado à internet' : 'Sem conexão com a internet',
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
